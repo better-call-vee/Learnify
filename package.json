@@ -19,9 +19,11 @@
   },
   "homepage": "https://github.com/Programming-Hero-Web-Course4/b11a11-server-side-better-call-vee#readme",
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
     "serverless-http": "^3.2.0"
