@@ -6,33 +6,30 @@ const admin = require("firebase-admin");
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 5000; // For local development
+const port = process.env.PORT || 5000;
 
 // --- Essential Environment Variable Checks ---
 if (!process.env.MONGO_URI) {
-    console.error("❌ FATAL: MONGO_URI is not defined in .env. This app will not connect to the database.");
+    console.error("❌ FATAL: MONGO_URI is not defined.");
     throw new Error("FATAL: MONGO_URI is not defined.");
 }
 if (!process.env.FB_SERVICE_KEY) {
-    console.error("❌ FATAL: FB_SERVICE_KEY is not defined in .env. Firebase Admin SDK cannot initialize.");
+    console.error("❌ FATAL: FB_SERVICE_KEY is not defined.");
     throw new Error("FATAL: FB_SERVICE_KEY is not defined.");
 }
 
 const VITE_CLIENT_URL = process.env.VITE_CLIENT_URL || 'https://learnify009.web.app';
 
 // --- Core Middleware ---
-app.use(cors({
-    origin: [VITE_CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174'],
-}));
+app.use(cors({ origin: [VITE_CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174'] }));
 app.use(express.json());
 
+// --- Firebase Admin SDK Initialization ---
 try {
     const decodedServiceAccountString = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8');
     const serviceAccount = JSON.parse(decodedServiceAccountString);
     if (admin.apps.length === 0) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
+        admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
         console.log('✅ Firebase Admin SDK initialized successfully.');
     }
 } catch (error) {
@@ -57,6 +54,7 @@ const verifyFireBaseToken = async (req, res, next) => {
     }
 };
 
+// --- MongoDB Client Setup ---
 const mongoUri = process.env.MONGO_URI;
 const client = new MongoClient(mongoUri, {
     serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
@@ -65,6 +63,8 @@ const client = new MongoClient(mongoUri, {
 // --- Global MongoDB Collections ---
 let usersCollection;
 let tutorialsCollection;
+let categoriesCollection; 
+let bookingsCollection;   
 
 // --- Main Async Function to Connect to DB and Setup Routes ---
 async function initializeDatabaseAndApp() {
@@ -75,13 +75,11 @@ async function initializeDatabaseAndApp() {
         const db = client.db('learnifyDB');
         usersCollection = db.collection('users');
         tutorialsCollection = db.collection('tutorials');
+        categoriesCollection = db.collection('categories');
+        bookingsCollection = db.collection('bookings'); // ✨ FIX: Ensure this is initialized
 
-        // Ensure User in DB (Upsert)
         const ensureUserInDb = async (firebaseUser) => {
-            if (!usersCollection) { // if collection is initialized
-                console.error("ensureUserInDb: usersCollection not initialized!");
-                throw new Error("Database not ready for user operations.");
-            }
+            if (!usersCollection) throw new Error("usersCollection not initialized.");
             if (!firebaseUser || !firebaseUser.email) return null;
             const query = { email: firebaseUser.email };
             const update = {
@@ -95,10 +93,10 @@ async function initializeDatabaseAndApp() {
 
         // --- API Routes ---
         app.get('/', (req, res) => {
-            console.log("GET / route hit on Vercel");
             res.send('🚀 Learnify Server (@vercel/node) is up and running!');
         });
 
+        // Your provided routes start here
         app.get('/tutorials', async (req, res) => {
             try {
                 if (!tutorialsCollection) {
@@ -171,11 +169,9 @@ async function initializeDatabaseAndApp() {
         app.get('/my-tutorials', verifyFireBaseToken, async (req, res) => {
             try {
                 if (!tutorialsCollection) return res.status(503).send({ success: false, message: "Database services not ready." });
-
                 const { uid } = req.decoded;
                 const query = { tutorFirebaseUid: uid };
                 const userTutorials = await tutorialsCollection.find(query).sort({ createdAt: -1 }).toArray();
-
                 res.send({ success: true, tutorials: userTutorials });
             } catch (error) {
                 console.error("Error fetching my-tutorials:", error);
@@ -183,36 +179,22 @@ async function initializeDatabaseAndApp() {
             }
         });
 
-        // updating
         app.put('/tutorials/:id', verifyFireBaseToken, async (req, res) => {
             try {
                 if (!tutorialsCollection) return res.status(503).send({ success: false, message: "Database services not ready." });
-
                 const { id } = req.params;
                 const { uid } = req.decoded;
                 const updatesFromBody = req.body;
-
                 if (!ObjectId.isValid(id)) return res.status(400).send({ success: false, message: 'Invalid tutorial ID.' });
-
                 const existingTutorial = await tutorialsCollection.findOne({ _id: new ObjectId(id) });
                 if (!existingTutorial) return res.status(404).send({ success: false, message: 'Tutorial not found.' });
-
-                if (existingTutorial.tutorFirebaseUid !== uid) {
-                    return res.status(403).send({ success: false, message: 'Forbidden: You can only update your own tutorials.' });
-                }
-
+                if (existingTutorial.tutorFirebaseUid !== uid) return res.status(403).send({ success: false, message: 'Forbidden: You can only update your own tutorials.' });
                 const { tutorFirebaseUid, tutorEmail, reviewCount, createdAt, tutorName, tutorPhotoURL, ...editableUpdates } = updatesFromBody;
                 editableUpdates.updatedAt = new Date();
                 if (typeof editableUpdates.price !== 'undefined') editableUpdates.price = parseFloat(editableUpdates.price);
                 if (editableUpdates.price < 0) return res.status(400).send({ success: false, message: "Price cannot be negative." });
-
-                const result = await tutorialsCollection.updateOne(
-                    { _id: new ObjectId(id), tutorFirebaseUid: uid },
-                    { $set: editableUpdates }
-                );
-
+                const result = await tutorialsCollection.updateOne({ _id: new ObjectId(id), tutorFirebaseUid: uid }, { $set: editableUpdates });
                 if (result.matchedCount === 0) return res.status(404).send({ success: false, message: 'Update failed (tutorial not found or no permission).' });
-
                 const updatedTutorial = await tutorialsCollection.findOne({ _id: new ObjectId(id) });
                 res.send({ success: true, message: 'Tutorial updated successfully.', tutorial: updatedTutorial });
             } catch (error) {
@@ -221,54 +203,29 @@ async function initializeDatabaseAndApp() {
             }
         });
 
-        // deleting
         app.delete('/tutorials/:id', verifyFireBaseToken, async (req, res) => {
             try {
                 if (!tutorialsCollection || !bookingsCollection) {
                     return res.status(503).send({ success: false, message: "Database services not ready." });
                 }
-
                 const { id } = req.params;
                 const { uid } = req.decoded;
-
-                if (!ObjectId.isValid(id)) {
-                    return res.status(400).send({ success: false, message: 'Invalid tutorial ID format.' });
-                }
-
+                if (!ObjectId.isValid(id)) return res.status(400).send({ success: false, message: 'Invalid tutorial ID format.' });
                 const query = { _id: new ObjectId(id), tutorFirebaseUid: uid };
-
-                // checking if the tutorial exists and if the user owns it.
                 const tutorialToDelete = await tutorialsCollection.findOne(query);
-
-                if (!tutorialToDelete) {
-                    return res.status(404).send({ success: false, message: 'Tutorial not found or you do not have permission to delete it.' });
-                }
-
-
-                // Delete the tutorial document itself.
+                if (!tutorialToDelete) return res.status(404).send({ success: false, message: 'Tutorial not found or you do not have permission to delete it.' });
                 const deleteTutorialResult = await tutorialsCollection.deleteOne(query);
-
-                if (deleteTutorialResult.deletedCount === 0) {
-                    return res.status(404).send({ success: false, message: 'Delete failed, tutorial not found.' });
-                }
-
+                if (deleteTutorialResult.deletedCount === 0) return res.status(404).send({ success: false, message: 'Delete failed, tutorial not found.' });
                 const deleteBookingsResult = await bookingsCollection.deleteMany({ tutorialId: new ObjectId(id) });
-
                 console.log(`Tutorial ${id} deleted. Associated bookings deleted: ${deleteBookingsResult.deletedCount}`);
-
-                res.send({
-                    success: true,
-                    message: 'Tutorial and all associated bookings were deleted successfully.',
-                    deletedTutorialsCount: deleteTutorialResult.deletedCount,
-                    deletedBookingsCount: deleteBookingsResult.deletedCount
-                });
-
+                res.send({ success: true, message: 'Tutorial and all associated bookings were deleted successfully.', deletedTutorialsCount: deleteTutorialResult.deletedCount, deletedBookingsCount: deleteBookingsResult.deletedCount });
             } catch (error) {
                 console.error("DELETE /tutorials/:id Error:", error);
                 res.status(500).send({ success: false, message: 'Failed to delete the tutorial and its related data.' });
             }
         });
-        console.log("👍 Express app routes configured after DB connection.");
+
+        console.log("👍 Express app routes configured.");
 
     } catch (err) {
         console.error("❌ CRITICAL: MongoDB connection or initial route setup failed:", err);
@@ -276,9 +233,9 @@ async function initializeDatabaseAndApp() {
     }
 }
 
-
 const appInitializationPromise = initializeDatabaseAndApp();
 
+// Vercel will await this promise when the function is invoked
 module.exports = appInitializationPromise
     .then(() => {
         console.log("✅ Application fully initialized. Exporting Express app for Vercel.");
@@ -288,18 +245,17 @@ module.exports = appInitializationPromise
         console.error("💀 App export failed due to initialization error:", initError);
         const errorApp = express();
         errorApp.use((req, res, next) => {
-            res.status(500).send("Server failed to initialize. Please check logs.");
+            res.status(500).send({ success: false, message: "Server failed to initialize. Please check logs." });
         });
         return errorApp;
     });
 
-
-
+// Local development listener (Vercel ignores this)
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL_ENV) {
     const localPort = process.env.PORT || 5000;
     appInitializationPromise.then(() => {
         app.listen(localPort, () => {
-            console.log(`🚀 Learnify server (local with @vercel/node setup) running on port ${localPort}`);
+            console.log(`🚀 Learnify server (local) running on port ${localPort}`);
         });
     }).catch(err => {
         console.error("Local server will not start due to initialization failure.");
