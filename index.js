@@ -225,14 +225,34 @@ async function initializeDatabaseAndApp() {
             }
         });
 
+        app.patch('/tutorials/:id/review', verifyFireBaseToken, async (req, res) => {
+            try {
+                if (!tutorialsCollection) return res.status(503).send({ success: false, message: "Database service is not available." });
+                const { id } = req.params;
+                if (!ObjectId.isValid(id)) return res.status(400).send({ success: false, message: 'Invalid tutorial ID.' });
+
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = { $inc: { reviewCount: 1 } };
+
+                const result = await tutorialsCollection.updateOne(filter, updateDoc);
+                if (result.matchedCount === 0) return res.status(404).send({ success: false, message: "Tutorial to review not found." });
+
+                res.send({ success: true, message: 'Review count updated successfully.' });
+            } catch (error) {
+                console.error("PATCH /tutorials/:id/review Error:", error);
+                res.status(500).send({ success: false, message: 'Failed to update review count.' });
+            }
+        });
+
+
         app.post('/bookings', verifyFireBaseToken, async (req, res) => {
             try {
                 if (!bookingsCollection || !tutorialsCollection) return res.status(503).send({ success: false, message: "Database not ready." });
 
-                const bookingClientData = req.body; // Expected from client: tutorialId, image, language, price, tutorEmail
+                const bookingClientData = req.body;
                 const { uid: studentFirebaseUid, email: studentEmail } = req.decoded;
 
-                await ensureUserInDb(req.decoded); // Ensure student user exists in our DB
+                await ensureUserInDb(req.decoded);
 
                 if (!bookingClientData.tutorialId || !ObjectId.isValid(bookingClientData.tutorialId)) {
                     return res.status(400).send({ success: false, message: "Valid tutorialId is required." });
@@ -249,11 +269,11 @@ async function initializeDatabaseAndApp() {
                     studentEmail,
                     tutorFirebaseUid: tutorialToBook.tutorFirebaseUid,
                     tutorEmail: tutorialToBook.tutorEmail,
-                    image: bookingClientData.image, 
+                    image: bookingClientData.image,
                     language: bookingClientData.language,
                     price: parseFloat(bookingClientData.price),
                     bookingDate: new Date(),
-                    status: 'Booked', // Initial booking status
+                    status: 'Booked',
                 };
 
                 const result = await bookingsCollection.insertOne(newBooking);
@@ -262,6 +282,20 @@ async function initializeDatabaseAndApp() {
             } catch (error) {
                 console.error("POST /bookings Error:", error);
                 res.status(500).send({ success: false, message: 'Failed to create booking.' });
+            }
+        });
+
+        app.get('/my-bookings', verifyFireBaseToken, async (req, res) => {
+            try {
+                if (!bookingsCollection) return res.status(503).send({ success: false, message: "Database service is not available." });
+
+                const query = { studentFirebaseUid: req.decoded.uid };
+                const myBookings = await bookingsCollection.find(query).sort({ bookingDate: -1 }).toArray();
+
+                res.send({ success: true, bookings: myBookings });
+            } catch (error) {
+                console.error("GET /my-bookings Error:", error);
+                res.status(500).send({ success: false, message: 'Failed to fetch your booked tutorials.' });
             }
         });
 
@@ -275,7 +309,6 @@ async function initializeDatabaseAndApp() {
 
 const appInitializationPromise = initializeDatabaseAndApp();
 
-// Vercel will await this promise when the function is invoked
 module.exports = appInitializationPromise
     .then(() => {
         console.log("✅ Application fully initialized. Exporting Express app for Vercel.");
