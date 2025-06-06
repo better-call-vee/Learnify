@@ -99,6 +99,32 @@ async function initializeDatabaseAndApp() {
             res.send('🚀 Learnify Server (@vercel/node) is up and running!');
         });
 
+        app.get('/tutorials', async (req, res) => {
+            try {
+                if (!tutorialsCollection) {
+                    return res.status(503).send({ success: false, message: "Database services not ready." });
+                }
+                const { language, category, search } = req.query;
+                const query = {};
+                if (search) {
+                    query.$or = [
+                        { language: { $regex: search, $options: 'i' } },
+                        { description: { $regex: search, $options: 'i' } },
+                        { tutorName: { $regex: search, $options: 'i' } }
+                    ];
+                } else if (language) {
+                    query.language = { $regex: `^${language}$`, $options: 'i' };
+                } else if (category) {
+                    query.language = { $regex: `^${category}$`, $options: 'i' };
+                }
+                const tutorials = await tutorialsCollection.find(query).sort({ createdAt: -1 }).toArray();
+                res.send({ success: true, tutorials });
+            } catch (error) {
+                console.error("GET /tutorials Error:", error);
+                res.status(500).send({ success: false, message: 'Failed to fetch tutorials.' });
+            }
+        });
+
         app.post('/tutorials', verifyFireBaseToken, async (req, res) => {
             try {
                 if (!tutorialsCollection || !usersCollection) {
@@ -128,29 +154,17 @@ async function initializeDatabaseAndApp() {
             }
         });
 
-        app.get('/tutorials', async (req, res) => {
+        app.get('/tutorials/:id', async (req, res) => {
             try {
-                if (!tutorialsCollection) {
-                    return res.status(503).send({ success: false, message: "Database services not ready." });
-                }
-                const { language, category, search } = req.query;
-                const query = {};
-                if (search) {
-                    query.$or = [
-                        { language: { $regex: search, $options: 'i' } },
-                        { description: { $regex: search, $options: 'i' } },
-                        { tutorName: { $regex: search, $options: 'i' } }
-                    ];
-                } else if (language) {
-                    query.language = { $regex: `^${language}$`, $options: 'i' };
-                } else if (category) {
-                    query.language = { $regex: `^${category}$`, $options: 'i' };
-                }
-                const tutorials = await tutorialsCollection.find(query).sort({ createdAt: -1 }).toArray();
-                res.send({ success: true, tutorials });
+                if (!tutorialsCollection) return res.status(503).send({ success: false, message: "Database services not ready." });
+                const { id } = req.params;
+                if (!ObjectId.isValid(id)) return res.status(400).send({ success: false, message: 'Invalid tutorial ID.' });
+                const tutorial = await tutorialsCollection.findOne({ _id: new ObjectId(id) });
+                if (!tutorial) return res.status(404).send({ success: false, message: 'Tutorial not found.' });
+                res.send({ success: true, tutorial });
             } catch (error) {
-                console.error("GET /tutorials Error:", error);
-                res.status(500).send({ success: false, message: 'Failed to fetch tutorials.' });
+                console.error("GET /tutorials/:id Error:", error);
+                res.status(500).send({ success: false, message: 'Failed to fetch tutorial details.' });
             }
         });
 
@@ -181,7 +195,7 @@ module.exports = appInitializationPromise
 
 
 
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL_ENV) { 
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL_ENV) {
     const localPort = process.env.PORT || 5000;
     appInitializationPromise.then(() => {
         app.listen(localPort, () => {
