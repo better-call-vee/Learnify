@@ -1,7 +1,7 @@
 // src/hooks/useAxiosSecure.js
 import axios from 'axios';
 import { useContext, useEffect } from 'react';
-import AuthContext from '../provider/AuthContext'; // 🚨 Adjust path to your AuthContext
+import AuthContext from '../provider/AuthContext'; 
 import { useNavigate } from 'react-router-dom';
 
 // Directly using your backend URL
