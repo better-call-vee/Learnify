@@ -168,6 +168,106 @@ async function initializeDatabaseAndApp() {
             }
         });
 
+        app.get('/my-tutorials', verifyFireBaseToken, async (req, res) => {
+            try {
+                if (!tutorialsCollection) return res.status(503).send({ success: false, message: "Database services not ready." });
+
+                const { uid } = req.decoded;
+                const query = { tutorFirebaseUid: uid };
+                const userTutorials = await tutorialsCollection.find(query).sort({ createdAt: -1 }).toArray();
+
+                res.send({ success: true, tutorials: userTutorials });
+            } catch (error) {
+                console.error("Error fetching my-tutorials:", error);
+                res.status(500).send({ success: false, message: 'Failed to fetch your tutorials.' });
+            }
+        });
+
+        // updating
+        app.put('/tutorials/:id', verifyFireBaseToken, async (req, res) => {
+            try {
+                if (!tutorialsCollection) return res.status(503).send({ success: false, message: "Database services not ready." });
+
+                const { id } = req.params;
+                const { uid } = req.decoded;
+                const updatesFromBody = req.body;
+
+                if (!ObjectId.isValid(id)) return res.status(400).send({ success: false, message: 'Invalid tutorial ID.' });
+
+                const existingTutorial = await tutorialsCollection.findOne({ _id: new ObjectId(id) });
+                if (!existingTutorial) return res.status(404).send({ success: false, message: 'Tutorial not found.' });
+
+                if (existingTutorial.tutorFirebaseUid !== uid) {
+                    return res.status(403).send({ success: false, message: 'Forbidden: You can only update your own tutorials.' });
+                }
+
+                const { tutorFirebaseUid, tutorEmail, reviewCount, createdAt, tutorName, tutorPhotoURL, ...editableUpdates } = updatesFromBody;
+                editableUpdates.updatedAt = new Date();
+                if (typeof editableUpdates.price !== 'undefined') editableUpdates.price = parseFloat(editableUpdates.price);
+                if (editableUpdates.price < 0) return res.status(400).send({ success: false, message: "Price cannot be negative." });
+
+                const result = await tutorialsCollection.updateOne(
+                    { _id: new ObjectId(id), tutorFirebaseUid: uid },
+                    { $set: editableUpdates }
+                );
+
+                if (result.matchedCount === 0) return res.status(404).send({ success: false, message: 'Update failed (tutorial not found or no permission).' });
+
+                const updatedTutorial = await tutorialsCollection.findOne({ _id: new ObjectId(id) });
+                res.send({ success: true, message: 'Tutorial updated successfully.', tutorial: updatedTutorial });
+            } catch (error) {
+                console.error("PUT /tutorials/:id Error:", error);
+                res.status(500).send({ success: false, message: 'Failed to update tutorial.' });
+            }
+        });
+
+        // deleting
+        app.delete('/tutorials/:id', verifyFireBaseToken, async (req, res) => {
+            try {
+                if (!tutorialsCollection || !bookingsCollection) {
+                    return res.status(503).send({ success: false, message: "Database services not ready." });
+                }
+
+                const { id } = req.params;
+                const { uid } = req.decoded;
+
+                if (!ObjectId.isValid(id)) {
+                    return res.status(400).send({ success: false, message: 'Invalid tutorial ID format.' });
+                }
+
+                const query = { _id: new ObjectId(id), tutorFirebaseUid: uid };
+
+                // checking if the tutorial exists and if the user owns it.
+                const tutorialToDelete = await tutorialsCollection.findOne(query);
+
+                if (!tutorialToDelete) {
+                    return res.status(404).send({ success: false, message: 'Tutorial not found or you do not have permission to delete it.' });
+                }
+
+
+                // Delete the tutorial document itself.
+                const deleteTutorialResult = await tutorialsCollection.deleteOne(query);
+
+                if (deleteTutorialResult.deletedCount === 0) {
+                    return res.status(404).send({ success: false, message: 'Delete failed, tutorial not found.' });
+                }
+
+                const deleteBookingsResult = await bookingsCollection.deleteMany({ tutorialId: new ObjectId(id) });
+
+                console.log(`Tutorial ${id} deleted. Associated bookings deleted: ${deleteBookingsResult.deletedCount}`);
+
+                res.send({
+                    success: true,
+                    message: 'Tutorial and all associated bookings were deleted successfully.',
+                    deletedTutorialsCount: deleteTutorialResult.deletedCount,
+                    deletedBookingsCount: deleteBookingsResult.deletedCount
+                });
+
+            } catch (error) {
+                console.error("DELETE /tutorials/:id Error:", error);
+                res.status(500).send({ success: false, message: 'Failed to delete the tutorial and its related data.' });
+            }
+        });
         console.log("👍 Express app routes configured after DB connection.");
 
     } catch (err) {
