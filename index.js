@@ -63,8 +63,8 @@ const client = new MongoClient(mongoUri, {
 // --- Global MongoDB Collections ---
 let usersCollection;
 let tutorialsCollection;
-let categoriesCollection; 
-let bookingsCollection;   
+let categoriesCollection;
+let bookingsCollection;
 
 // --- Main Async Function to Connect to DB and Setup Routes ---
 async function initializeDatabaseAndApp() {
@@ -222,6 +222,46 @@ async function initializeDatabaseAndApp() {
             } catch (error) {
                 console.error("DELETE /tutorials/:id Error:", error);
                 res.status(500).send({ success: false, message: 'Failed to delete the tutorial and its related data.' });
+            }
+        });
+
+        app.post('/bookings', verifyFireBaseToken, async (req, res) => {
+            try {
+                if (!bookingsCollection || !tutorialsCollection) return res.status(503).send({ success: false, message: "Database not ready." });
+
+                const bookingClientData = req.body; // Expected from client: tutorialId, image, language, price, tutorEmail
+                const { uid: studentFirebaseUid, email: studentEmail } = req.decoded;
+
+                await ensureUserInDb(req.decoded); // Ensure student user exists in our DB
+
+                if (!bookingClientData.tutorialId || !ObjectId.isValid(bookingClientData.tutorialId)) {
+                    return res.status(400).send({ success: false, message: "Valid tutorialId is required." });
+                }
+
+                const tutorialToBook = await tutorialsCollection.findOne({ _id: new ObjectId(bookingClientData.tutorialId) });
+                if (!tutorialToBook) {
+                    return res.status(404).send({ success: false, message: "Cannot book a tutorial that does not exist." });
+                }
+
+                const newBooking = {
+                    tutorialId: new ObjectId(bookingClientData.tutorialId),
+                    studentFirebaseUid,
+                    studentEmail,
+                    tutorFirebaseUid: tutorialToBook.tutorFirebaseUid,
+                    tutorEmail: tutorialToBook.tutorEmail,
+                    image: bookingClientData.image, 
+                    language: bookingClientData.language,
+                    price: parseFloat(bookingClientData.price),
+                    bookingDate: new Date(),
+                    status: 'Booked', // Initial booking status
+                };
+
+                const result = await bookingsCollection.insertOne(newBooking);
+                const createdBooking = await bookingsCollection.findOne({ _id: result.insertedId });
+                res.status(201).send({ success: true, message: 'Booking successful!', booking: createdBooking });
+            } catch (error) {
+                console.error("POST /bookings Error:", error);
+                res.status(500).send({ success: false, message: 'Failed to create booking.' });
             }
         });
 
