@@ -58,7 +58,7 @@ const TutorCard = ({ tutorial }) => {
                             <span>{tutorial.reviewCount} Reviews</span>
                         </div>
                         <Link to={`/tutorials/${tutorial._id}`}>
-                            <Button variant="secondary" size="sm">View Details</Button>
+                            <Button variant="secondary" className="cursor-pointer hover:bg-[var(--icon-hover-bg)] hover:text-txt" size="sm">View Details</Button>
                         </Link>
                     </div>
                 </div>
