@@ -76,7 +76,7 @@ async function initializeDatabaseAndApp() {
         usersCollection = db.collection('users');
         tutorialsCollection = db.collection('tutorials');
         categoriesCollection = db.collection('categories');
-        bookingsCollection = db.collection('bookings'); // ✨ FIX: Ensure this is initialized
+        bookingsCollection = db.collection('bookings'); 
 
         const ensureUserInDb = async (firebaseUser) => {
             if (!usersCollection) throw new Error("usersCollection not initialized.");
@@ -348,6 +348,26 @@ async function initializeDatabaseAndApp() {
                 res.status(500).send({ success: false, message: 'Failed to fetch platform statistics.' });
             }
         });
+
+        app.get('/categories', async (req, res) => {
+            try {
+                if (!categoriesCollection) {
+                    return res.status(503).send({ success: false, message: "Database services not ready." });
+                }
+
+                const allCategories = await categoriesCollection.find({}).sort({ name: 1 }).toArray();
+
+                res.send({
+                    success: true,
+                    categories: allCategories
+                });
+
+            } catch (error) {
+                console.error("GET /categories Error:", error);
+                res.status(500).send({ success: false, message: 'Failed to fetch language categories.' });
+            }
+        });
+
 
         console.log("👍 Express app routes configured.");
 
