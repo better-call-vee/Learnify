@@ -107,7 +107,6 @@ export default function FAQPage() {
     const [lottieData, setLottieData] = useState(null);
 
     useEffect(() => {
-        // Fetch Lottie animation
         fetch('/faq.json')
             .then(res => res.json())
             .then(data => setLottieData(data))
@@ -115,7 +114,7 @@ export default function FAQPage() {
     }, []);
 
     if (!lottieData) {
-        return <Loading />; // Show a loading spinner while the Lottie file is fetched
+        return <Loading />; 
     }
 
     return (
