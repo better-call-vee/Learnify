@@ -20,31 +20,7 @@ export default function Login() {
     const navigate = useNavigate();
     const from = location.state?.from?.pathname || "/";
 
-    //  for updating lastSignInTime on a custom backend.
-    // This feature will require using useAxiosSecure (once created) and your
-    // learnify-psi-ten.vercel.app backend with an appropriate endpoint.
-    // For now, it's commented out to focus on Firebase client-side login.
-    /*
-    const updateLastSignInOnCustomBackend = async (firebaseUser) => {
-        if (!firebaseUser || !firebaseUser.email || !firebaseUser.metadata?.lastSignInTime) {
-            console.warn("updateLastSignInOnCustomBackend: Insufficient user data.");
-            return;
-        }
-        try {
-            // This section will be replaced with useAxiosSecure later.
-            // const learnifyBackendUrl = "https://learnify-psi-ten.vercel.app/your-endpoint";
-            // const token = await firebaseUser.getIdToken(); // Or from AuthContext's getFirebaseIdToken()
-            // const response = await axios.patch(learnifyBackendUrl, 
-            //   { email: firebaseUser.email, lastSignInTime: new Date(firebaseUser.metadata.lastSignInTime).toLocaleString() },
-            //   { headers: { Authorization: `Bearer ${token}` } }
-            // );
-            // console.log("Custom backend lastSignInTime update response:", response.data);
-            console.log("Placeholder for updateLastSignInOnCustomBackend for user:", firebaseUser.email);
-        } catch (err) {
-            console.error("Failed to update lastSignInTime on custom backend:", err);
-        }
-    };
-    */
+    
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -56,10 +32,7 @@ export default function Login() {
             // Firebase onAuthStateChanged in AuthProvider will set the user state.
             console.log("Firebase email/password login successful for:", result.user?.email);
 
-            //  re-enable custom backend sync:
-            // if (result.user) {
-            //     await updateLastSignInOnCustomBackend(result.user);
-            // }
+        
 
             Swal.fire({
                 position: "center",
@@ -140,8 +113,8 @@ export default function Login() {
     }
 
     return (
-        <div className="flex justify-center items-center min-h-screen px-4">
-            <div className="card bg-bbgc text-white w-full max-w-md shadow-2xl p-6 sm:p-8 rounded-lg">
+        <div className="flex bg-bgc justify-center rounded-3xl items-center min-h-screen px-4">
+            <div className="card bg-bgc text-white w-full max-w-md shadow-2xl p-6 sm:p-8 rounded-lg">
                 <h2 className="text-3xl text-center font-bold mb-6 text-sky-400">
                     Login to Your Account
                 </h2>

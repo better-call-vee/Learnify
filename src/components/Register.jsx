@@ -139,8 +139,8 @@ export default function Register() {
     if (authIsLoading || componentIsLoading) return <Loading />;
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-[var(--color-bbgc)] p-4">
-            <div className="card bg-[var(--color-bgc)] text-[var(--color-txt)] w-full max-w-md shadow-2xl p-6 sm:p-8 rounded-lg">
+        <div className="flex justify-center items-center min-h-screen bg-bgc rounded-2xl p-4">
+            <div className="card bg-bgc text-[var(--color-txt)] w-full max-w-md shadow-2xl p-6 sm:p-8 rounded-lg">
                 <h2 className="text-3xl text-center font-bold mb-6 text-[var(--color-primary)]">
                     Create Your Account
                 </h2>
