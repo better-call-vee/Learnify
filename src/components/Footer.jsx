@@ -68,8 +68,8 @@ export default function Footer() {
                     <div>
                         <h3 className="font-semibold mb-4">Legal</h3>
                         <div className="flex flex-col gap-2">
-                            <Link to="/terms" className="hover:text-[color:var(--color-divider)] transition-colors text-sm">Terms of Service</Link>
-                            <Link to="/privacy" className="hover:text-[color:var(--color-divider)] transition-colors text-sm">Privacy Policy</Link>
+                            <Link to="https://www.instagram.com/neelbilai/" className="hover:text-[color:var(--color-divider)] transition-colors text-sm">Terms of Service</Link>
+                            <Link to="https://www.instagram.com/neelbilai/" className="hover:text-[color:var(--color-divider)] transition-colors text-sm">Privacy Policy</Link>
                         </div>
                     </div>
                 </div>
