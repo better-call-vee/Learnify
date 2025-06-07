@@ -104,7 +104,7 @@ const Navbar = () => {
     // Logo component
     const SiteLogo = () => (
         <Link to="/" className="flex items-center gap-2" onClick={handleNavLinkClick}>
-            <MdSchool className="h-7 w-7 text-primary" /> {/* Using React Icon for logo */}
+            <MdSchool className="h-7 w-7 text-txt" /> {/* Using React Icon for logo */}
             <span className="text-xl font-bold text-base-content">Learnify</span>
         </Link>
     );
@@ -160,7 +160,7 @@ const Navbar = () => {
                                 <NavLink
                                     key={id} to={to} title={title}
                                     className={({ isActive }) =>
-                                        `h-full px-3 lg:px-4 flex items-center justify-center gap-2 hover:bg-base-200 transition-colors duration-200 ${isActive ? 'bg-base-300 text-primary font-semibold' : ''}`
+                                        `h-full px-3 lg:px-4 flex items-center justify-center gap-2 hover:bg-base-200 transition-colors duration-200 ${isActive ? 'bg-base-300 text-txt font-semibold' : ''}`
                                     }
                                 >
                                     <span className="text-xl">{icon}</span>
