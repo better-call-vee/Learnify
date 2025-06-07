@@ -299,6 +299,56 @@ async function initializeDatabaseAndApp() {
             }
         });
 
+        app.get('/stats', async (req, res) => {
+            try {
+                if (!usersCollection || !tutorialsCollection) {
+                    return res.status(503).send({ success: false, message: "Database services not ready." });
+                }
+
+
+                const userCountPromise = usersCollection.countDocuments();
+
+                const tutorialsStatsPromise = tutorialsCollection.aggregate([
+                    {
+                        $facet: {
+                            "totalReviews": [
+                                { $group: { _id: null, total: { $sum: "$reviewCount" } } }
+                            ],
+                            "distinctTutors": [
+                                { $group: { _id: "$tutorFirebaseUid" } },
+                                { $count: "count" }
+                            ],
+                            "distinctLanguages": [
+                                { $group: { _id: "$language" } },
+                                { $count: "count" }
+                            ]
+                        }
+                    }
+                ]).toArray();
+
+                const [userCount, tutorialsStatsResult] = await Promise.all([userCountPromise, tutorialsStatsPromise]);
+
+                const stats = tutorialsStatsResult[0];
+                const reviewCount = stats.totalReviews[0]?.total || 0;
+                const tutorCount = stats.distinctTutors[0]?.count || 0;
+                const languageCount = stats.distinctLanguages[0]?.count || 0;
+
+                res.send({
+                    success: true,
+                    stats: {
+                        users: userCount,
+                        tutors: tutorCount,
+                        languages: languageCount,
+                        reviews: reviewCount
+                    }
+                });
+
+            } catch (error) {
+                console.error("GET /stats Error:", error);
+                res.status(500).send({ success: false, message: 'Failed to fetch platform statistics.' });
+            }
+        });
+
         console.log("👍 Express app routes configured.");
 
     } catch (err) {
