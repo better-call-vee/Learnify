@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import Lottie from "lottie-react";
-
+import { Link } from 'react-router-dom';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/autoplay';
@@ -74,12 +74,12 @@ export default function Banner({ scrollToSectionRef }) {
                                 </li>
                             </ul>
                             <div className="mt-6 md:mt-8 text-center md:text-left">
-                                <button
+                                <Link to="/faq"
                                     onClick={scrollToSectionRef}
                                     className="btn btn-primary text-primary-content font-bold py-3 px-6 sm:px-8 rounded-lg hover:opacity-90 transition-all transform hover:scale-105 duration-300 text-sm sm:text-base"
                                 >
                                     Find Your Tutor Now
-                                </button>
+                                </Link>
                             </div>
                         </div>
 

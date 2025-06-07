@@ -19,6 +19,7 @@ const AddTutorials = lazy(() => import('../components/AddTutorials')); // For /a
 const MyTutorials = lazy(() => import('../components/MyTutorials'));   // For /my-tutorials (Private)
 const UpdateTutorial = lazy(() => import('../components/UpdateTutorial')); // For /my-tutorials/update/:tutorialId (Private)
 const MyBookedTutors = lazy(() => import('../components/MyBookedTutors')); // For /my-booked-tutors (Private)
+const FAQPage = lazy(() => import('../components/FAQpage'));
 
 
 const router = createBrowserRouter([
@@ -32,13 +33,16 @@ const router = createBrowserRouter([
                 element: <Suspense fallback={<SuspenseFallback />}><Home /></Suspense>
             },
             {
-                path: 'find-tutors', // Shows all tutors/tutorials
+                path: 'find-tutors', 
                 element: <Suspense fallback={<SuspenseFallback />}><FindTutors /></Suspense>,
             },
             {
-                path: 'find-tutors/:categoryName', // Shows tutors/tutorials by category
+                path: 'faq',
+                element: <Suspense fallback={<SuspenseFallback />}><FAQPage /></Suspense>
+            },
+            {
+                path: 'find-tutors/:categoryName', 
                 element: <Suspense fallback={<SuspenseFallback />}><FindTutors /></Suspense>,
-                // The FindTutors component would need to read the :categoryName param
             },
             {
                 path: 'tutorials/:tutorialId', // Tutor details page
