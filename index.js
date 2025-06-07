@@ -65,6 +65,8 @@ let usersCollection;
 let tutorialsCollection;
 let categoriesCollection;
 let bookingsCollection;
+let decksCollection;
+let flashcardsCollection;
 
 // --- Main Async Function to Connect to DB and Setup Routes ---
 async function initializeDatabaseAndApp() {
@@ -76,7 +78,9 @@ async function initializeDatabaseAndApp() {
         usersCollection = db.collection('users');
         tutorialsCollection = db.collection('tutorials');
         categoriesCollection = db.collection('categories');
-        bookingsCollection = db.collection('bookings'); 
+        bookingsCollection = db.collection('bookings');
+        decksCollection = db.collection('decks');
+        flashcardsCollection = db.collection('flashcards');
 
         const ensureUserInDb = async (firebaseUser) => {
             if (!usersCollection) throw new Error("usersCollection not initialized.");
