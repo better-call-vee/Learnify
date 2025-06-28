@@ -1,10 +1,8 @@
-// src/hooks/useAxiosSecure.js
 import axios from 'axios';
 import { useContext, useEffect } from 'react';
-import AuthContext from '../provider/AuthContext'; 
+import AuthContext from '../provider/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-// Directly using your backend URL
 const API_BASE_URL = "https://learnify-psi-ten.vercel.app";
 
 const axiosSecure = axios.create({
@@ -16,10 +14,9 @@ const useAxiosSecure = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Request Interceptor: Adds the Firebase ID token to the Authorization header
         const requestIntercept = axiosSecure.interceptors.request.use(
             async (config) => {
-                if (user) { // Only add token if a user is signed in
+                if (user) {
                     const token = await getFirebaseIdToken();
                     if (token) {
                         config.headers['Authorization'] = `Bearer ${token}`;
@@ -33,7 +30,7 @@ const useAxiosSecure = () => {
         );
 
         const responseIntercept = axiosSecure.interceptors.response.use(
-            (response) => response, 
+            (response) => response,
             async (error) => {
                 const originalRequest = error.config;
                 if (error.response && (error.response.status === 401 || error.response.status === 403) && !originalRequest._retry) {
