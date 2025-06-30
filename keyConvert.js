@@ -12,3 +12,6 @@ try {
     console.error("Error reading or converting the service key JSON file:", error.message);
     console.error("Please ensure 'firebase-admin-service-key.json' is in the same directory as this script, or update the path.");
 }
+
+
+// node keyConvert.js  -- run this on command prompt and generate the FB_SERVICE_KEY and save in .env
