@@ -98,8 +98,8 @@ export default function InteractiveFacts() {
                                     data-tooltip-id="fact-tooltip"
                                     data-tooltip-content="Load a new random fact!"
                                 >
-                                    <FaSyncAlt />
-                                    Discover Another
+                                    <FaSyncAlt className='text-txt' />
+                                    <span className='text-txt'>Discover Another</span>
                                 </motion.button>
                             </div>
                         </div>

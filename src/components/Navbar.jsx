@@ -1,6 +1,6 @@
 // src/components/Navbar.jsx
 import React, { useState, useEffect, useContext } from "react";
-import { FaHome, FaSearch, FaUserCircle } from "react-icons/fa"; // Added FaUserCircle
+import { FaHome, FaSearch, FaUserCircle } from "react-icons/fa";
 import {
     MdDarkMode,
     MdLightMode,
@@ -9,7 +9,7 @@ import {
     MdMenu,
     MdClose,
     MdCollectionsBookmark,
-    MdSchool // Added MdSchool for logo
+    MdSchool
 } from "react-icons/md";
 import { BiLogIn, BiLogOut } from "react-icons/bi";
 import { NavLink, Link, useNavigate } from "react-router-dom";
@@ -30,6 +30,7 @@ const Navbar = () => {
 
     const [darkMode, setDarkMode] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false); // State to track scroll
 
     useEffect(() => {
         const savedDarkMode = localStorage.getItem("darkMode") === "true";
@@ -38,6 +39,15 @@ const Navbar = () => {
             "data-theme",
             savedDarkMode ? "dark" : "light"
         );
+    }, []);
+
+    // Effect to handle scroll events for sticky navbar
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 10);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll); // Cleanup
     }, []);
 
     const toggleDarkMode = () => {
@@ -92,7 +102,6 @@ const Navbar = () => {
     };
 
     const displayName = user?.displayName || 'User';
-    // Use Firebase photoURL if available, otherwise no specific default (icon will be shown)
     const photoURL = user?.photoURL;
 
     const handleNavLinkClick = () => {
@@ -101,15 +110,13 @@ const Navbar = () => {
         }
     };
 
-    // Logo component
     const SiteLogo = () => (
         <Link to="/" className="flex items-center gap-2" onClick={handleNavLinkClick}>
-            <MdSchool className="h-7 w-7 text-txt" /> {/* Using React Icon for logo */}
+            <MdSchool className="h-7 w-7 text-txt" />
             <span className="text-xl font-bold text-base-content">Learnify</span>
         </Link>
     );
 
-    // User Avatar Component
     const UserAvatar = ({ size = 'h-10 w-10' }) => {
         if (photoURL) {
             return (
@@ -121,9 +128,9 @@ const Navbar = () => {
                 />
             );
         }
-        // Fallback to React Icon if no photoURL
         return <FaUserCircle className={`${size} text-gray-400 group-hover:text-primary transition cursor-pointer`} tabIndex={0} />;
     };
+
     const UserAvatarMobile = ({ size = 'w-16 h-16' }) => {
         if (photoURL) {
             return (
@@ -136,7 +143,7 @@ const Navbar = () => {
 
     return (
         <>
-            <nav className="h-16 shadow-md bg-base-100 text-base-content transition-colors relative z-20">
+            <nav className={`h-16 bg-base-100/90 text-base-content transition-all duration-300 z-20 sticky top-0 ${isScrolled ? 'shadow-md backdrop-blur-sm' : ''}`}>
                 <div className="h-full w-[92%] max-w-7xl mx-auto flex justify-between items-center">
                     {/* Mobile: Logo (left) + Menu Toggle (right) */}
                     <div className="md:hidden flex-1 flex justify-start">
@@ -208,7 +215,7 @@ const Navbar = () => {
                         <p className="text-center font-semibold text-lg text-base-content">{displayName}</p>
                     </div>
                 )}
-                {!user && loading && ( // Show a small spinner in drawer if loading and no user yet
+                {!user && loading && (
                     <div className="flex justify-center p-3"><span className="loading loading-spinner loading-sm"></span></div>
                 )}
 
@@ -216,7 +223,7 @@ const Navbar = () => {
                 {navLinks.map(({ icon, title, id, to }) => (
                     <NavLink
                         key={id} to={to} onClick={handleNavLinkClick}
-                        className={({ isActive }) => `flex items-center w-full text-left gap-3 p-3 hover:bg-base-200 rounded transition text-base ${isActive ? 'bg-base-300 text-primary font-semibold' : 'text-base-content'}`}
+                        className={({ isActive }) => `flex items-center w-full text-left gap-3 p-3 hover:bg-base-200 rounded transition text-base ${isActive ? 'bg-primary text-primary-content font-semibold' : 'text-base-content'}`}
                     >
                         <span className="text-xl">{icon}</span>
                         <span>{title}</span>
@@ -228,7 +235,7 @@ const Navbar = () => {
                     <span>Toggle Theme</span>
                 </button>
                 <div className="mt-auto">
-                    {loading && !user ? null : user ? ( // Avoid showing logout if initial loading is happening for a non-user state
+                    {loading && !user ? null : user ? (
                         <button onClick={async () => { await handleLogout(); toggleDrawer(); }} className="flex items-center w-full text-left gap-3 p-3 text-error hover:bg-error-focus hover:text-error-content rounded transition text-base">
                             <BiLogOut />
                             <span>Logout</span>
